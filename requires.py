@@ -1,23 +1,22 @@
-from charms.reactive import hook
-from charms.reactive import RelationBase
-from charms.reactive import scopes
+from charms.reactive import Endpoint
+from charms.reactive import hook, when, when_not
+from charms.reactive.flags import clear_flag, set_flag
+from charmhelpers.core.hookenv import service_name
 
 
-class PrometheusRequires(RelationBase):
-    scope = scopes.UNIT
+class PrometheusRequires(Endpoint):
 
-    @hook('{requires:prometheus}-relation-{joined,changed}')
+    @when('endpoint.{endpoint_name}.changed')
     def changed(self):
-        conv = self.conversation()
-        if conv.get_remote('port'):
-            # this unit's conversation has a port, so
-            # it is part of the set of available units
-            conv.set_state('{relation_name}.available')
+        if self.all_joined_units.received['port']:
+            set_flag(self.expand_name('endpoint.{endpoint_name}.available'))
+    
 
-    @hook('{requires:prometheus}-relation-{departed,broken}')
+    @when('endpoint.{endpoint_name}.departed')
     def broken(self):
-        conv = self.conversation()
-        conv.remove_state('{relation_name}.available')
+        if not self.is_joined:
+            clear_flag(self.expand_name('endpoint.{endpoint_name}.available'))
+
 
     def targets(self):
         """
@@ -35,23 +34,25 @@ class PrometheusRequires(RelationBase):
             ]
         """
         services = {}
-        for conv in self.conversations():
-            service_name = conv.scope.split('/')[0]
-            service = services.setdefault(service_name, {
-                'job_name': service_name,
-                'targets': [],
-            })
-            host = conv.get_remote('hostname') or\
-                conv.get_remote('private-address')
-            port = conv.get_remote('port')
-            if host and port:
-                service['targets'].append('{}:{}'.format(host, port))
-            if conv.get_remote('metrics_path'):
-                service['metrics_path'] = conv.get_remote('metrics_path')
-            if conv.get_remote('scrape_interval'):
-                service['scrape_interval'] = conv.get_remote('scrape_interval')
-            if conv.get_remote('scrape_timeout'):
-                service['scrape_timeout'] = conv.get_remote('scrape_timeout')
-            if conv.get_remote('labels'):
-                service['labels'] = conv.get_remote('labels')
+        for relation in self.relations:
+            service_name = relation.application_name
+            for unit in relation.units:
+                service = services.setdefault(service_name, {
+                    'job_name': service_name,
+                    'targets': [],
+                })
+                host = unit.received['hostname'] or\
+                    unit.received['private-address']
+                port = unit.received['port']
+                if host and port:
+                    service['targets'].append('{}:{}'.format(host, port))
+                if unit.received['metrics_path']:
+                    service['metrics_path'] = unit.received['metrics_path']
+                if unit.received['scrape_interval']:
+                    service['scrape_interval'] = unit.received['scrape_interval']
+                if unit.received['scrape_timeout']:
+                    service['scrape_timeout'] = unit.received['scrape_timeout']
+                if unit.received['labels']:
+                    service['labels'] = unit.received['labels']
         return [s for s in services.values() if s['targets']]
+
