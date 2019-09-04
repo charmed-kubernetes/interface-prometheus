@@ -1,7 +1,6 @@
 from charms.reactive import Endpoint
-from charms.reactive import hook, when, when_not
-from charms.reactive.flags import clear_flag, set_flag
-from charmhelpers.core.hookenv import service_name, ingress_address
+from charms.reactive.flags import toggle_flag
+from charmhelpers.core.hookenv import ingress_address
 
 
 '''
@@ -11,28 +10,19 @@ implementation based on RelationBase.
 The old `{endpoint_name}.available` flags are maintained
 '''
 
+
 class PrometheusRequires(Endpoint):
-
-    @when('endpoint.{endpoint_name}.changed')
-    def changed(self):
+    def manage_flags(self):
         """
-        Raising the availability flag once we have received the port field from a connected unit.
-        It is convention that remote units signal availability this way.
+        Managing the availability flag based on the port field from a connected
+        unit.  It is convention that remote units signal availability this way.
         """
-        if self.all_joined_units.received['port']:
-            set_flag(self.expand_name('endpoint.{endpoint_name}.available'))
-            set_flag(self.expand_name('{endpoint_name}.available')) #compatibility
-    
-
-    @when('endpoint.{endpoint_name}.departed')
-    def broken(self):
-        """
-        Clearing the availability flag once the last unit departed.
-        """
-        if not self.is_joined:
-            clear_flag(self.expand_name('endpoint.{endpoint_name}.available'))
-            clear_flag(self.expand_name('{endpoint_name}.available')) #compatibility
-
+        has_port = self.all_joined_units.received['port']
+        toggle_flag(self.expand_name('endpoint.{endpoint_name}.available'),
+                    has_port)
+        # compatibility
+        toggle_flag(self.expand_name('{endpoint_name}.available'),
+                    has_port)
 
     def targets(self):
         """
@@ -58,9 +48,10 @@ class PrometheusRequires(Endpoint):
                     'targets': [],
                 })
 
-                # If the hostname is not provided we use the informaton from the relation
+                # If the hostname is not provided we use the informaton from
+                # the relation
                 host = (unit.received['hostname'] or
-                    ingress_address(relation.relation_id, unit))
+                        ingress_address(relation.relation_id, unit.unit_name))
                 port = unit.received['port']
 
                 # Skipping this unit if it isn't ready yet
@@ -68,16 +59,16 @@ class PrometheusRequires(Endpoint):
                     service['targets'].append('{}:{}'.format(host, port))
                 else:
                     continue
-                
+
                 if unit.received['metrics_path']:
                     service['metrics_path'] = unit.received['metrics_path']
                 if unit.received['labels']:
                     service['labels'] = unit.received['labels']
-                
+
                 # Optional fields
                 if unit.received['scrape_interval']:
-                    service['scrape_interval'] = unit.received['scrape_interval']
+                    service['scrape_interval'] = \
+                            unit.received['scrape_interval']
                 if unit.received['scrape_timeout']:
                     service['scrape_timeout'] = unit.received['scrape_timeout']
         return [s for s in services.values() if s['targets']]
-
