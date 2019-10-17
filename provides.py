@@ -26,7 +26,8 @@ class PrometheusProvides(Endpoint):
                     self.is_joined)
 
     def configure(self, port, path='/metrics',
-                  scrape_interval=None, scrape_timeout=None, labels={}):
+                  scrape_interval=None, scrape_timeout=None, labels={},
+                  hostname=None):
         """
         Interface method to set information provided to remote units
         """
@@ -39,7 +40,8 @@ class PrometheusProvides(Endpoint):
         for relation in self.relations:
             relation.to_publish_raw['hostname'] = hookenv.ingress_address(
                 relation.relation_id, hookenv.local_unit()
-            )
+            ) if hostname is None else hostname
+
             relation.to_publish_raw['port'] = port
             relation.to_publish_raw['metrics_path'] = path
             relation.to_publish['labels'] = labels

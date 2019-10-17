@@ -17,12 +17,12 @@ class PrometheusRequires(Endpoint):
         Managing the availability flag based on the port field from a connected
         unit.  It is convention that remote units signal availability this way.
         """
-        has_port = self.all_joined_units.received['port']
+        is_available = len(self.targets()) > 0
         toggle_flag(self.expand_name('endpoint.{endpoint_name}.available'),
-                    has_port)
+                    is_available)
         # compatibility
         toggle_flag(self.expand_name('{endpoint_name}.available'),
-                    has_port)
+                    is_available)
 
     def targets(self):
         """
