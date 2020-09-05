@@ -43,8 +43,6 @@ import logging
 from datetime import timedelta
 from re import search
 
-from charmhelpers.core import hookenv
-
 from ops.framework import EventBase, ObjectEvents, EventSource, Object, StoredState
 
 
@@ -89,7 +87,7 @@ class PrometheusScrapeTarget(Object):
         self.state.set_default(scrape_interval=None)
         self.state.set_default(scrape_timeout=None)
         self.state.set_default(labels=None)
-        hostname = hookenv.network_get_primary_address(relation_name)
+        hostname = str(charm.model.get_binding(relation_name).network.ingress_address)
         self.state.set_default(hostname=hostname)
 
     def _on_relation_joined(self, event):
@@ -177,6 +175,9 @@ class PrometheusScrapeTarget(Object):
         if not isinstance(metrics_path, str):
             raise PrometheusConfigError("Prometheus metrics_path must be a string")
         self.state.metrics_path = metrics_path
+
+        # Re-read ingress-address in case the binding has changed
+        self.state.hostname = str(self.charm.model.get_binding(self._relation_name).network.ingress_address)
 
         # after data validation, update the relations with the new scrape definition
         self._update_scrape_targets()
