@@ -12,18 +12,25 @@ scrape_interval, scrape_timeout, and custom labels to add to exported metrics::
             super().__init__(*args)
             # -- initialize the prometheus-scrape-target interface --
             self.prom_target = PrometheusScrapeTarget(self, "prometheus-scrape-target")
+            # optionally observe the relation available event to defer setting
+            # up a metrics endpoint
             self.framework.observe(
                 self.prom_target.on.prometheus_available, self.on_prometheus_available
             )
 
-        def on_prometheus_available(self, event):
-            self.prom_target.expose_scrape_target(
-                port,
-                metrics_path,
-                scrape_interval="30s",
-                scrape_timeout="15s",
-                labels={"mylabel": "myvalue"},
-            )
+        def on_config_changed(self, event):
+            try:
+                self.prom_target.expose_scrape_target(
+                    port,
+                    metrics_path,
+                    scrape_interval="30s",
+                    scrape_timeout="15s",
+                    labels={"mylabel": "myvalue"},
+                )
+            except PrometheusConfigError:
+                logging.error("Invalid configuration")
+                return
+
 
 scrape_interval, scrape_timeout, and labels are all optional fields
 
