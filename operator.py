@@ -98,9 +98,10 @@ class PrometheusScrapeTarget(Object):
         self.state.set_default(hostname=hostname)
 
     def _on_relation_joined(self, event):
+        self._update_scrape_targets()
         self.on.prometheus_available.emit()
 
-    def _update_scrape_targets(self, event=None):
+    def _update_scrape_targets(self):
         for relation in self.model.relations[self._relation_name]:
             # no need to update data on relations with no units
             if not relation.units:
