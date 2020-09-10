@@ -1,4 +1,4 @@
 name: prometheus
 summary: Prometheus scrape target specification layer.
 version: 1
-repo: github.com:tasdomas/juju-interface-prometheus
+repo: https://git.launchpad.net/interface-prometheus
