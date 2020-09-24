@@ -94,8 +94,11 @@ class PrometheusScrapeTarget(Object):
         self.state.set_default(scrape_interval=None)
         self.state.set_default(scrape_timeout=None)
         self.state.set_default(labels=None)
-        hostname = str(charm.model.get_binding(relation_name).network.ingress_address)
+        hostname = self.get_hostname()
         self.state.set_default(hostname=hostname)
+
+    def get_hostname(self):
+        return str(self.charm.model.get_binding(self._relation_name).network.ingress_address)
 
     def _on_relation_joined(self, event):
         self._update_scrape_targets()
@@ -185,7 +188,7 @@ class PrometheusScrapeTarget(Object):
         self.state.metrics_path = metrics_path
 
         # Re-read ingress-address in case the binding has changed
-        self.state.hostname = str(self.charm.model.get_binding(self._relation_name).network.ingress_address)
+        self.state.hostname = self.get_hostname()
 
         # after data validation, update the relations with the new scrape definition
         self._update_scrape_targets()
