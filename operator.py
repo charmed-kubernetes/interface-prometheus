@@ -113,12 +113,14 @@ class PrometheusScrapeTarget(Object):
 
             our_unit_data["hostname"] = self.state.hostname
             our_unit_data["port"] = str(self.state.port)
-            our_unit_data["metrics_path"] = self.state.metrics_path
+            if self.state.metrics_path:
+                our_unit_data["metrics_path"] = self.state.metrics_path
             if self.state.scrape_interval:
                 our_unit_data["scrape_interval"] = self.state.scrape_interval
             if self.state.scrape_timeout:
                 our_unit_data["scrape_timeout"] = self.state.scrape_timeout
-            our_unit_data["labels"] = json.dumps(dict(self.state.labels))
+            if self.state.labels:
+                our_unit_data["labels"] = json.dumps(dict(self.state.labels))
 
     def _check_interval_larger_than_timeout(self):
         if self.state.scrape_interval is None and self.state.scrape_timeout is None:
